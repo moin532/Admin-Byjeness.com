@@ -10,7 +10,7 @@ async function connectToMongoDB() {
     useUnifiedTopology: true,
   });
   await client.connect();
-  console.log("Connected to client  MongoDB");
+  console.log("mongo connencted sucess");
   return client.db("B2B");
 }
 
@@ -33,13 +33,20 @@ async function findUserByEmail(Email) {
 }
 
 const findid =async(id)=>{
-
+  console.log(id);
   const db = await connectToMongoDB();
   const prdcollection = db.collection("products");
-  const idee = await prdcollection.deleteOne({ _id: new ObjectId(id) });
+  const idee = await prdcollection.findOneAndDelete({ _id: new ObjectId(id) });
   return idee;
-
 }
+
+const findProduct =async(id)=>{
+  const db = await connectToMongoDB();
+  const prdcollection = db.collection("products");
+  const details = await prdcollection.findOne({ _id: new ObjectId(id) });
+  return details;
+};
+
 async function findUserById(id) {
   const db = await connectToMongoDB();
   const collection = db.collection("users");
@@ -217,7 +224,7 @@ exports.adminBuyer = async (req, res) => {
   }
 };
 
-//GET:http://localhost:4000/api/v1/admin/user/:id
+//DELETE:http://localhost:4000/api/v1/product/:id
 exports.DeleteProduct = async (req, res) => {
   const usreID = req.params.id;
 
@@ -232,9 +239,44 @@ exports.DeleteProduct = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      result,
       message: "product deleted succesfully",
     });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+//GET:http://localhost:4000/api/v1/admin/user/:id
+exports.ProductDetails = async (req, res) => {
+
+  const usreID = req.params.id;
+
+  try {
+    const result = await findProduct(usreID);
+
+
+    if (!result) {
+      return res
+        .status(401)
+        .json(`Product does not exceed with id: ${req.params.id}`);
+    }
+
+    const ProductImagesUrls = JSON.parse(result.images).map((ele) => '/' + ele.filename);
+  
+    return res.status(200).json({
+      success: true,
+      product_name: product.productName,
+      category_type: product.categoryType,
+      description: product.description,
+      prices: product.prices,
+      onsale: product.onSale,
+      specs: product.specs,
+      images: ProductImagesUrls,
+  });
+
   } catch (error) {
     return res.status(500).json({
       success: false,
